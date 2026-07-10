@@ -18,11 +18,19 @@ export interface QualityIssueInfo {
   message: string;
 }
 
+/** Raw 0..1 measurements, present only when a pixel buffer was analyzed. */
+export interface QualityMetrics {
+  brightness: number;
+  sharpness: number;
+}
+
 export interface ImageQualityReport {
   ok: boolean;
   issues: QualityIssueInfo[];
   /** Codes we actually evaluated this run (for transparency in the UI/logs). */
   evaluated: QualityIssue[];
+  /** Measured values behind the luma-based checks — used for dev tuning. */
+  metrics?: QualityMetrics;
 }
 
 export const MIN_IMAGE_DIMENSION = 480;
@@ -118,12 +126,15 @@ export function checkImageQualityDetailed(input: DetailedQualityInput): ImageQua
   const evaluated: QualityIssue[] = [...base.evaluated, 'too-dark', 'too-blurry'];
   const issues: QualityIssueInfo[] = [...base.issues];
 
-  if (computeBrightness(input.luma) < MIN_BRIGHTNESS) {
+  const brightness = computeBrightness(input.luma);
+  const sharpness = computeSharpness(input.luma, input.lumaWidth, input.lumaHeight);
+
+  if (brightness < MIN_BRIGHTNESS) {
     issues.push({ code: 'too-dark', message: describeIssue('too-dark') });
   }
-  if (computeSharpness(input.luma, input.lumaWidth, input.lumaHeight) < MIN_SHARPNESS) {
+  if (sharpness < MIN_SHARPNESS) {
     issues.push({ code: 'too-blurry', message: describeIssue('too-blurry') });
   }
 
-  return { ok: issues.length === 0, issues, evaluated };
+  return { ok: issues.length === 0, issues, evaluated, metrics: { brightness, sharpness } };
 }

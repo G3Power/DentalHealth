@@ -7,6 +7,7 @@ import {
   computeSharpness,
   describeIssue,
   MIN_IMAGE_DIMENSION,
+  MIN_SHARPNESS,
   type QualityIssue,
 } from '@/capture/quality';
 
@@ -106,5 +107,25 @@ describe('checkImageQualityDetailed', () => {
     const codes = report.issues.map((issue) => issue.code);
     expect(codes).toContain('too-dark');
     expect(codes).toContain('too-blurry');
+  });
+
+  it('reports the measured brightness/sharpness for tuning', () => {
+    const report = checkImageQualityDetailed({
+      width: 1080,
+      height: 1440,
+      luma: checkerboard(8, 8),
+      lumaWidth: 8,
+      lumaHeight: 8,
+    });
+    expect(report.metrics).toBeDefined();
+    expect(report.metrics?.brightness).toBeGreaterThanOrEqual(0);
+    expect(report.metrics?.brightness).toBeLessThanOrEqual(1);
+    // A high-contrast checkerboard is the "sharpest" possible input.
+    expect(report.metrics?.sharpness).toBeGreaterThan(MIN_SHARPNESS);
+  });
+
+  it('omits metrics on the resolution-only check', () => {
+    const report = checkImageQuality({ width: 1080, height: 1440 });
+    expect(report.metrics).toBeUndefined();
   });
 });
