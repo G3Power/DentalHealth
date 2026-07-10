@@ -138,6 +138,10 @@ against the same taxonomy via the `ImageAnnotation` contract in `src/data/annota
 (`validateAnnotation` / `validateAnnotationForManifest`), which also carries the optional
 subgroup label the fairness evaluation slices on.
 
+A researched shortlist of **candidate** public datasets (with licenses and caveats to verify
+before any use) lives in [`docs/datasets.md`](docs/datasets.md). Nothing there is ingested:
+licenses must be confirmed and data de-identified before a source is encoded as a manifest.
+
 ## Regulatory posture (why the wording is careful)
 
 **Initial target market: United States.** An app that *diagnoses/detects disease* is likely
