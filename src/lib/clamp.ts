@@ -1,0 +1,5 @@
+/** Clamp a number into the inclusive 0..1 range. */
+export function clamp01(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(1, value));
+}
