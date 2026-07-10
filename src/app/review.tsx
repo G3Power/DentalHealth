@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Screen } from '@/components/ui/screen';
+import { MIN_BRIGHTNESS, MIN_SHARPNESS } from '@/capture/quality';
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useScan } from '@/state/scan-store';
@@ -15,6 +16,9 @@ export default function ReviewScreen() {
   const theme = useTheme();
   const { input, quality } = useScan();
   const advisories = quality && !quality.ok ? quality.issues : [];
+  // Dev-only readout so the brightness/sharpness thresholds can be tuned against
+  // real captures during manual testing. Never rendered in production builds.
+  const metrics = quality?.metrics;
 
   if (!input) {
     return (
@@ -62,6 +66,14 @@ export default function ReviewScreen() {
         </Card>
       ) : null}
 
+      {__DEV__ && metrics ? (
+        <View style={[styles.devReadout, { borderColor: theme.border }]}>
+          <ThemedText type="code" style={{ color: theme.textSecondary }}>
+            {`DEV · brightness ${metrics.brightness.toFixed(2)} (min ${MIN_BRIGHTNESS.toFixed(2)}) ${metrics.brightness >= MIN_BRIGHTNESS ? 'ok' : 'low'}\nDEV · sharpness  ${metrics.sharpness.toFixed(3)} (min ${MIN_SHARPNESS.toFixed(3)}) ${metrics.sharpness >= MIN_SHARPNESS ? 'ok' : 'low'}`}
+          </ThemedText>
+        </View>
+      ) : null}
+
       <View style={styles.actions}>
         <Button
           title="Retake"
@@ -95,6 +107,13 @@ const styles = StyleSheet.create({
   },
   image: {
     flex: 1,
+  },
+  devReadout: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderRadius: Radii.sm,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
   },
   actions: {
     flexDirection: 'row',
