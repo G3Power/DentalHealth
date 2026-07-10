@@ -41,8 +41,11 @@ Other scripts:
 npm run web        # run in the browser
 npm run lint       # eslint
 npm run typecheck  # tsc --noEmit
+npm test           # jest unit tests
 npx expo export -p web   # produce a static web bundle (used for CI-style verification)
 ```
+
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, tests, and the web bundle on every PR.
 
 Camera capture requires a real device or simulator with a camera; the web build runs but
 camera access depends on the browser.
@@ -56,6 +59,7 @@ src/
     index.tsx          # home / dashboard
     consent.tsx        # first-run acknowledgement (gated)
     capture.tsx        # guided camera capture + quality gate
+    review.tsx         # confirm/retake the captured photo
     analyzing.tsx      # runs the analyzer, then routes to results
     results.tsx        # observations + wellness signals + next steps
     about.tsx          # full disclaimers, privacy, reset acknowledgement
