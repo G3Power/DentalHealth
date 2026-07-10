@@ -1,14 +1,15 @@
 {
   "expo": {
-    "name": "__scaffold__",
-    "slug": "__scaffold__",
+    "name": "Oral Health Companion",
+    "slug": "oral-health-companion",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "scaffold",
+    "scheme": "oralhealth",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
@@ -28,9 +29,15 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#0E7C7B",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Oral Health Companion uses the camera only so you can take a photo of your own mouth for an educational self-check. Images are processed on your device for this demo and are not uploaded."
         }
       ]
     ],
