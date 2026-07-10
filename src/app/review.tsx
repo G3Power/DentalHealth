@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Screen } from '@/components/ui/screen';
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -12,7 +13,8 @@ import { useScan } from '@/state/scan-store';
 export default function ReviewScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { input } = useScan();
+  const { input, quality } = useScan();
+  const advisories = quality && !quality.ok ? quality.issues : [];
 
   if (!input) {
     return (
@@ -43,6 +45,22 @@ export default function ReviewScreen() {
           accessibilityLabel="The photo you just captured"
         />
       </View>
+
+      {advisories.length > 0 ? (
+        <Card backgroundColor="monitorBg" borderless>
+          <ThemedText type="smallBold" themeColor="monitor">
+            A clearer photo may help
+          </ThemedText>
+          {advisories.map((issue) => (
+            <ThemedText key={issue.code} type="small" themeColor="monitor">
+              {issue.message}
+            </ThemedText>
+          ))}
+          <ThemedText type="small" style={{ color: theme.textSecondary }}>
+            You can still continue — this is only a suggestion.
+          </ThemedText>
+        </Card>
+      ) : null}
 
       <View style={styles.actions}>
         <Button

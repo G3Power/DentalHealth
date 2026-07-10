@@ -7,7 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
-import { checkImageQuality } from '@/capture/quality';
+import { extractLuma } from '@/capture/pixels';
+import { checkImageQuality, checkImageQualityDetailed } from '@/capture/quality';
 import { Radii, Spacing } from '@/constants/theme';
 import { useIsClient } from '@/hooks/use-is-client';
 import { useTheme } from '@/hooks/use-theme';
@@ -34,11 +35,32 @@ export default function CaptureScreen() {
       const photo = await camera.takePictureAsync({ quality: 0.6 });
       if (!photo) throw new Error('No photo returned');
 
-      const report = checkImageQuality({ width: photo.width, height: photo.height });
-      if (!report.ok) {
-        Alert.alert('Let’s retake that', report.issues.map((issue) => issue.message).join('\n'));
+      // Hard gate: resolution. A too-small image is genuinely unusable, and the
+      // dimensions are always available, so this is the only blocking check.
+      const resolution = checkImageQuality({ width: photo.width, height: photo.height });
+      if (!resolution.ok) {
+        Alert.alert(
+          'Let’s retake that',
+          resolution.issues.map((issue) => issue.message).join('\n'),
+        );
         setIsCapturing(false);
         return;
+      }
+
+      // Advisory: brightness/sharpness when a pixel source is available (web now;
+      // native once a decoder is wired). Deliberately non-blocking — the findings
+      // are surfaced as guidance on the review screen so untuned heuristic
+      // thresholds can't hard-reject an otherwise fine photo.
+      let report = resolution;
+      const pixels = await extractLuma(photo.uri);
+      if (pixels) {
+        report = checkImageQualityDetailed({
+          width: photo.width,
+          height: photo.height,
+          luma: pixels.luma,
+          lumaWidth: pixels.width,
+          lumaHeight: pixels.height,
+        });
       }
 
       startScan(
