@@ -71,7 +71,10 @@ src/
     taxonomy.ts        # Phase 1 label set shared by data, model, and UI
     present.ts         # level/status -> label + theme color (exhaustive)
     model/             # on-device model seam: runner + pure score->result mapping
-  capture/quality.ts   # image quality gate (resolution + brightness + sharpness)
+  capture/             # image-quality gate + platform pixel source
+    quality.ts         # resolution (hard gate) + brightness/sharpness metrics
+    luma.ts            # pure RGBA->luma + downscale helpers (tested)
+    pixels.web.ts      # web pixel source (canvas readback); pixels.ts = native seam
   data/                # dataset manifest schema + validator + registry (both tracks)
   content/             # disclaimers, education, shared wellness signals (data)
   state/               # consent (persisted) + scan store (in-memory)
@@ -101,11 +104,15 @@ const runner: OralModelRunner = {
 setAnalyzer(createModelAnalyzer(runner));
 ```
 
-The image-quality gate (`src/capture/quality.ts`) is the other seam. It now includes real,
-tested brightness and sharpness metrics (`checkImageQualityDetailed`) alongside the enforced
-resolution check; wiring them into live capture only needs a per-platform step to decode the
-captured photo into a luma buffer. Mouth-presence detection is intentionally left to the
-Phase 1 model.
+The image-quality gate (`src/capture/quality.ts`) is the other seam, and its pixel source is
+now wired. A platform module exposes one `extractLuma(uri)` contract: `pixels.web.ts` decodes
+the captured photo via a downsampled canvas readback (active today), and `pixels.ts` is the
+native seam that returns `null` until a decoder is added (Skia readback, a small native
+module, or `expo-image-manipulator` + a JS decoder). Capture keeps **resolution** as the only
+hard gate; when pixels are available it also runs `checkImageQualityDetailed`, and the
+brightness/blur findings are surfaced as **non-blocking guidance** on the review screen so the
+heuristic thresholds can be tuned on real captures without ever hard-rejecting a usable photo.
+Mouth-presence detection is intentionally left to the Phase 1 model.
 
 ## Data sources (Phase 1)
 
@@ -146,8 +153,8 @@ for other markets (e.g. EU MDR) later.
 - **Phase 0:** capture UX, consent/disclaimers, privacy model, education, mock results behind
   a clean analyzer interface, plus tests + CI.
 - **Phase 1 (foundations landed):** shared label taxonomy, on-device model seam (fail-safe,
-  not yet active), dataset governance for both data tracks, and real brightness/sharpness
-  quality metrics. Remaining: source data, train/validate a model, wire a pixel source +
-  mouth-presence check.
+  not yet active), dataset governance for both data tracks, real brightness/sharpness quality
+  metrics, and a wired pixel source (web active; native seam ready). Remaining: source data,
+  train/validate a model, a native pixel decoder, and the mouth-presence check.
 - **Phase 2:** higher-stakes screening only with clinical partners, validated data, and a
   regulatory pathway.
