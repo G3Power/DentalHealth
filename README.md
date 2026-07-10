@@ -68,49 +68,86 @@ src/
     types.ts           # domain types (Observation, WellnessSignal, AnalysisResult)
     analyzer.ts        # OralAnalyzer interface + getAnalyzer()/setAnalyzer()
     mock-analyzer.ts   # Phase 0 illustrative implementation
+    taxonomy.ts        # Phase 1 label set shared by data, model, and UI
     present.ts         # level/status -> label + theme color (exhaustive)
-  capture/quality.ts   # on-device image quality gate (pluggable)
-  content/             # disclaimers + education content (data, not hard-coded)
+    model/             # on-device model seam: runner + pure score->result mapping
+  capture/quality.ts   # image quality gate (resolution + brightness + sharpness)
+  data/                # dataset manifest schema + validator + registry (both tracks)
+  content/             # disclaimers, education, shared wellness signals (data)
   state/               # consent (persisted) + scan store (in-memory)
   components/          # themed UI + result cards
 ```
 
 ### Swapping in a real analyzer (Phase 1+)
 
-No screen imports a concrete analyzer — they all call `getAnalyzer()`. To add a real
-on-device or server model, implement the `OralAnalyzer` interface and register it:
+No screen imports a concrete analyzer — they all call `getAnalyzer()`. The on-device model
+seam is already scaffolded in `src/analysis/model/`: provide an `OralModelRunner` (wrapping a
+TFLite / ONNX / Core ML model) and the pure `mapScoresToResult` turns per-indicator scores
+into an `AnalysisResult` via the shared `taxonomy.ts`. Until a real model is bundled, the
+default runner reports `isAvailable() === false`, so the app safely stays on the mock.
 
 ```ts
-import { setAnalyzer, type OralAnalyzer } from '@/analysis/analyzer';
+import { setAnalyzer } from '@/analysis/analyzer';
+import { createModelAnalyzer, type OralModelRunner } from '@/analysis/model/model-analyzer';
 
-const onDeviceAnalyzer: OralAnalyzer = {
-  source: 'on-device',
-  isDemo: false,
-  async analyze(input) {
-    /* run a TFLite / ONNX / Core ML model on input.imageUri and map to AnalysisResult */
+const runner: OralModelRunner = {
+  modelId: 'oral-v1',
+  isAvailable: () => true,
+  async run(input) {
+    /* run the model on input.imageUri, return { 'gingival-inflammation': 0.72, ... } */
   },
 };
 
-setAnalyzer(onDeviceAnalyzer);
+setAnalyzer(createModelAnalyzer(runner));
 ```
 
-The image-quality gate (`src/capture/quality.ts`) is the other seam: Phase 0 does a real
-minimum-resolution check and leaves lighting / blur / mouth-presence detection as
-documented `QualityIssue` codes to implement next.
+The image-quality gate (`src/capture/quality.ts`) is the other seam. It now includes real,
+tested brightness and sharpness metrics (`checkImageQualityDetailed`) alongside the enforced
+resolution check; wiring them into live capture only needs a per-platform step to decode the
+captured photo into a luma buffer. Mouth-presence detection is intentionally left to the
+Phase 1 model.
+
+## Data sources (Phase 1)
+
+We pursue **both** data tracks, modeled in `src/data/` and each described by a
+`DatasetManifest` that records license, consent basis, provenance, label coverage, and
+counts. `validateManifest` enforces governance rules so a source cannot be ingested without
+the right paperwork:
+
+- **`public`** — openly-licensed / research datasets, used to prototype and sanity-check the
+  pipeline. Must carry a real license and citation.
+- **`clinical-partner`** — data from a dental school / clinic. Must be **de-identified** and
+  backed by a data-use agreement + IRB/ethics approval (an offline workstream) before any
+  images are ingested.
+
+`src/data/registry.ts` ships a template for each track (counts `0` until real data is
+sourced). Both share the label set in `analysis/taxonomy.ts`.
 
 ## Regulatory posture (why the wording is careful)
 
-An app that *diagnoses/detects disease* is likely a regulated medical device (FDA SaMD in
-the US, CE/MDR in the EU). Phase 0 is intentionally an **educational / wellness** tool that
-reports observations and routes to professionals — not a diagnostic claim. Any move toward
-true detection (especially higher-stakes screening) should be planned with clinical
-validation and the appropriate regulatory pathway.
+**Initial target market: United States.** An app that *diagnoses/detects disease* is likely
+a regulated medical device (FDA Software as a Medical Device). Phase 0/1 are intentionally an
+**educational / wellness** tool that reports observations and routes to professionals — not a
+diagnostic claim. Any move toward true detection (especially higher-stakes screening) should
+be planned with clinical validation and an FDA pathway. The framing is centralized in
+`src/content/disclaimers.ts` so it can be reviewed with legal/clinical advisors and expanded
+for other markets (e.g. EU MDR) later.
+
+### Phase 1 evaluation plan (before anything ships)
+
+- Hold out a **test split** that never touches training; report per-indicator sensitivity /
+  specificity and calibration, plus performance **across skin tones and demographics** (a
+  health-equity requirement, not a nice-to-have).
+- Keep humans in the loop: every result stays non-diagnostic and routes to a professional.
+- Track quality-gate pass rates so we understand real-world capture conditions.
 
 ## Roadmap
 
-- **Phase 0 (this):** capture UX, consent/disclaimers, privacy model, education, mock
-  results behind a clean analyzer interface.
-- **Phase 1:** narrow, lower-risk *visible* indicators framed as observations, with
-  responsibly sourced data and real quality checks.
+- **Phase 0:** capture UX, consent/disclaimers, privacy model, education, mock results behind
+  a clean analyzer interface, plus tests + CI.
+- **Phase 1 (foundations landed):** shared label taxonomy, on-device model seam (fail-safe,
+  not yet active), dataset governance for both data tracks, and real brightness/sharpness
+  quality metrics. Remaining: source data, train/validate a model, wire a pixel source +
+  mouth-presence check.
 - **Phase 2:** higher-stakes screening only with clinical partners, validated data, and a
   regulatory pathway.
