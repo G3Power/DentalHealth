@@ -75,7 +75,12 @@ src/
     quality.ts         # resolution (hard gate) + brightness/sharpness metrics
     luma.ts            # pure RGBA->luma + downscale helpers (tested)
     pixels.web.ts      # web pixel source (canvas readback); pixels.ts = native seam
-  data/                # dataset manifest schema + validator + registry (both tracks)
+  data/                # dataset governance (both tracks)
+    dataset.ts         # manifest schema + validator + registry
+    annotations.ts     # per-image ground-truth label schema + validator
+  eval/                # model evaluation harness (pure, no data/model yet)
+    metrics.ts         # sensitivity/specificity/precision/f1, Brier, ECE, ROC AUC
+    fairness.ts        # per-subgroup metrics + fairness gap (health equity)
   content/             # disclaimers, education, shared wellness signals (data)
   state/               # consent (persisted) + scan store (in-memory)
   components/          # themed UI + result cards
@@ -128,7 +133,10 @@ the right paperwork:
   images are ingested.
 
 `src/data/registry.ts` ships a template for each track (counts `0` until real data is
-sourced). Both share the label set in `analysis/taxonomy.ts`.
+sourced). Both share the label set in `analysis/taxonomy.ts`. Individual images are labeled
+against the same taxonomy via the `ImageAnnotation` contract in `src/data/annotations.ts`
+(`validateAnnotation` / `validateAnnotationForManifest`), which also carries the optional
+subgroup label the fairness evaluation slices on.
 
 ## Regulatory posture (why the wording is careful)
 
@@ -142,9 +150,18 @@ for other markets (e.g. EU MDR) later.
 
 ### Phase 1 evaluation plan (before anything ships)
 
+This plan is now **runnable code** in `src/eval/` — pure, unit-tested functions ready for the
+first model + labeled test split. It carries no data or model; it is the instrument a model
+must pass through before release.
+
 - Hold out a **test split** that never touches training; report per-indicator sensitivity /
-  specificity and calibration, plus performance **across skin tones and demographics** (a
-  health-equity requirement, not a nice-to-have).
+  specificity, calibration, and discrimination via `evaluateIndicator` (`metrics.ts`:
+  sensitivity/specificity/precision/F1, Brier score, expected calibration error, ROC AUC).
+  Metrics return `null` (never `NaN`) when mathematically undefined, so "not measurable" is
+  explicit.
+- Evaluate **across skin tones and demographics** with `subgroupMetrics` + `subgroupGap`
+  (`fairness.ts`): a too-large fairness gap should block release the same way a low overall
+  score would — a health-equity requirement, not a nice-to-have.
 - Keep humans in the loop: every result stays non-diagnostic and routes to a professional.
 - Track quality-gate pass rates so we understand real-world capture conditions.
 
@@ -181,9 +198,11 @@ development (`__DEV__`), so it never appears in a production build.
 
 - **Phase 0:** capture UX, consent/disclaimers, privacy model, education, mock results behind
   a clean analyzer interface, plus tests + CI.
-- **Phase 1 (foundations landed):** shared label taxonomy, on-device model seam (fail-safe,
-  not yet active), dataset governance for both data tracks, real brightness/sharpness quality
-  metrics, and a wired pixel source (web active; native seam ready). Remaining: source data,
-  train/validate a model, a native pixel decoder, and the mouth-presence check.
+- **Phase 1 (foundations landed):** shared label taxonomy, per-image annotation contract,
+  on-device model seam (fail-safe, not yet active), dataset governance for both data tracks,
+  real brightness/sharpness quality metrics, a wired pixel source (web active; native seam
+  ready), and the evaluation harness (metrics + fairness) as pure, tested code. Remaining:
+  source data, train/validate a model through the harness, a native pixel decoder, and the
+  mouth-presence check.
 - **Phase 2:** higher-stakes screening only with clinical partners, validated data, and a
   regulatory pathway.
