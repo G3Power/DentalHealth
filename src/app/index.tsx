@@ -1,98 +1,129 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
+import { DisclaimerBanner } from '@/components/disclaimer-banner';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Screen } from '@/components/ui/screen';
+import { Radii, Spacing } from '@/constants/theme';
+import { APP_NAME } from '@/content/disclaimers';
+import { useTheme } from '@/hooks/use-theme';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+const STEPS: { title: string; text: string }[] = [
+  { title: 'Take a photo', text: 'Frame your open mouth using the on-screen guide.' },
+  { title: 'Review observations', text: 'See general, non-diagnostic things worth noticing.' },
+  { title: 'Learn & follow up', text: 'Understand the mouth–body link and when to see a pro.' },
+];
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const theme = useTheme();
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
+    <Screen>
+      <View style={styles.header}>
+        <ThemedText type="title" style={styles.appName}>
+          {APP_NAME}
         </ThemedText>
+        <ThemedText type="default" style={{ color: theme.textSecondary }}>
+          An educational look at what your mouth may reveal about your health.
+        </ThemedText>
+      </View>
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+      <DisclaimerBanner onPress={() => router.push('/about')} />
 
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+      <Card backgroundColor="primaryMuted" borderless style={styles.hero}>
+        <ThemedText type="subtitle" style={styles.heroTitle}>
+          Take a quick oral self-check
+        </ThemedText>
+        <ThemedText style={{ color: theme.text }}>
+          It takes about a minute. Your photo stays on your device.
+        </ThemedText>
+        <Button
+          title="Scan my mouth"
+          onPress={() => router.push('/capture')}
+          accessibilityHint="Opens the camera to take a guided photo"
+        />
+      </Card>
+
+      <View style={styles.section}>
+        <ThemedText type="smallBold" style={{ color: theme.textSecondary }}>
+          HOW IT WORKS
+        </ThemedText>
+        {STEPS.map((step, index) => (
+          <View key={step.title} style={styles.step}>
+            <View style={[styles.stepNumber, { backgroundColor: theme.primary }]}>
+              <ThemedText type="smallBold" style={{ color: theme.onPrimary }}>
+                {index + 1}
+              </ThemedText>
+            </View>
+            <View style={styles.stepText}>
+              <ThemedText type="smallBold">{step.title}</ThemedText>
+              <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                {step.text}
+              </ThemedText>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.links}>
+        <Button title="Learn" variant="secondary" onPress={() => router.push('/learn')} style={styles.linkButton} />
+        <Button
+          title="About & safety"
+          variant="secondary"
+          onPress={() => router.push('/about')}
+          style={styles.linkButton}
+        />
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
+  header: {
+    gap: Spacing.two,
+    marginTop: Spacing.two,
+  },
+  appName: {
+    fontSize: 34,
+    lineHeight: 40,
+  },
+  hero: {
+    gap: Spacing.three,
+    padding: Spacing.four,
+  },
+  heroTitle: {
+    fontSize: 24,
+    lineHeight: 30,
+  },
+  section: {
+    gap: Spacing.three,
+    marginTop: Spacing.one,
+  },
+  step: {
     flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
     alignItems: 'center',
     gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
   },
-  heroSection: {
+  stepNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  stepText: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    gap: 2,
   },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
+  links: {
+    flexDirection: 'row',
     gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+    marginTop: Spacing.one,
+  },
+  linkButton: {
+    flex: 1,
   },
 });
