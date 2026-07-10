@@ -148,6 +148,35 @@ for other markets (e.g. EU MDR) later.
 - Keep humans in the loop: every result stays non-diagnostic and routes to a professional.
 - Track quality-gate pass rates so we understand real-world capture conditions.
 
+## Manual testing (device / browser)
+
+The pure logic is covered by unit tests + CI, but the camera and the web canvas readback
+must be exercised by hand. To make threshold tuning measurable, the review screen prints the
+captured photo's **measured brightness/sharpness vs. the thresholds** — but only in
+development (`__DEV__`), so it never appears in a production build.
+
+**Run:** `npm run web` (browser, front camera) or `npm start` then open on a device.
+
+**Capture mechanics**
+
+- [ ] Camera permission prompt appears; deny → the permission screen explains + offers retry.
+- [ ] Live preview shows; front/back flip works; the shutter is disabled until the camera is ready.
+- [ ] A too-small capture is **blocked** with the retake alert (resolution is the only hard gate).
+
+**Pixel source + advisory** (web today; native shows resolution-only until a decoder is wired)
+
+- [ ] A normal, well-lit photo → **no** advisory on review; DEV readout shows `brightness ok` / `sharpness ok`.
+- [ ] A deliberately dark photo → `too-dark` advisory, and you can **still continue** (non-blocking).
+- [ ] A deliberately blurry/shaken photo → `too-blurry` advisory, still continues.
+- [ ] Retake / Use-this-photo both route correctly; the photo thumbnail also shows on results.
+
+**Threshold tuning**
+
+- Read the DEV readout across ~10 real captures (good + intentionally bad). If good photos read
+  `low`, or bad ones read `ok`, adjust `MIN_BRIGHTNESS` / `MIN_SHARPNESS` in `src/capture/quality.ts`.
+- Note the values are computed on a luma buffer downsampled to `DEFAULT_MAX_LUMA_DIM` (128px),
+  so tune against that, not the full-res photo.
+
 ## Roadmap
 
 - **Phase 0:** capture UX, consent/disclaimers, privacy model, education, mock results behind
