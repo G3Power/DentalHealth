@@ -64,6 +64,7 @@ function RootNavigator() {
           name="capture"
           options={{ headerShown: false, presentation: 'fullScreenModal' }}
         />
+        <Stack.Screen name="review" options={{ title: 'Review photo' }} />
         <Stack.Screen
           name="analyzing"
           options={{ headerShown: false, gestureEnabled: false }}

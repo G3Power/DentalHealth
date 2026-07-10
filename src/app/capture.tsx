@@ -50,7 +50,7 @@ export default function CaptureScreen() {
         },
         report,
       );
-      router.replace('/analyzing');
+      router.replace('/review');
     } catch {
       Alert.alert('Camera error', 'Something went wrong taking the photo. Please try again.');
       setIsCapturing(false);

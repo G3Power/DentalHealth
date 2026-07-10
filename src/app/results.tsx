@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Screen } from '@/components/ui/screen';
 import { WellnessCard } from '@/components/wellness-card';
-import { Spacing } from '@/constants/theme';
+import { Radii, Spacing } from '@/constants/theme';
 import { NOT_A_DIAGNOSIS, PRIVACY_SUMMARY, SEEK_CARE_PROMPT } from '@/content/disclaimers';
 import { useTheme } from '@/hooks/use-theme';
 import { useScan } from '@/state/scan-store';
@@ -15,7 +16,7 @@ import { useScan } from '@/state/scan-store';
 export default function ResultsScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { result, reset } = useScan();
+  const { result, input, reset } = useScan();
 
   if (!result) {
     return (
@@ -54,6 +55,20 @@ export default function ResultsScreen() {
             based on your actual photo.
           </ThemedText>
         </Card>
+      ) : null}
+
+      {input ? (
+        <View style={styles.photoRow}>
+          <Image
+            source={{ uri: input.imageUri }}
+            style={[styles.thumb, { backgroundColor: theme.backgroundElement }]}
+            contentFit="cover"
+            accessibilityLabel="The photo you captured"
+          />
+          <ThemedText type="small" style={[styles.photoNote, { color: theme.textSecondary }]}>
+            This is the photo you captured. It stays on your device.
+          </ThemedText>
+        </View>
       ) : null}
 
       <ThemedText style={{ color: theme.textSecondary }}>{result.summary}</ThemedText>
@@ -119,6 +134,19 @@ const styles = StyleSheet.create({
     fontSize: 24,
     lineHeight: 30,
     marginTop: Spacing.two,
+  },
+  photoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  thumb: {
+    width: 72,
+    aspectRatio: 3 / 4,
+    borderRadius: Radii.md,
+  },
+  photoNote: {
+    flex: 1,
   },
   section: {
     gap: Spacing.three,
